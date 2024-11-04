@@ -190,7 +190,7 @@ local InitializeDragify = function()
     end
 
     local Helpers = loadstring(game:HttpGet("https://raw.githubusercontent.com/certified-retart/helpers/refs/heads/main/utility.lua"))()
-    return Helpers.draggable(Window, 30)
+    Helpers.draggable(Window, 30)
 end
 
 local Initialize = function()
