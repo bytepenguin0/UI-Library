@@ -194,7 +194,11 @@ local InitializeDragify = function()
 end
 
 local Initialize = function()
-    return task.spawn(function(); InitializeDragify(); InitializeToggles(); InitializeTabs() end)
+    task.spawn(function()
+        InitializeDragify()
+        InitializeToggles()
+        InitializeTabs()
+    end)
 end
 
 Initialize()
