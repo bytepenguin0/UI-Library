@@ -50,8 +50,6 @@ module.CreateWindow = function(Title)
     Window.Topbar.Title.Text = Title
     Window.Name = Title
     Window.Parent = ScreenGui
-
-    Window.Topbar.Title.Interactable = false
 end
 
 module.AddTab = function(Title)
@@ -169,16 +167,18 @@ local InitializeToggles = function()
         end)
     end
 
-    game:GetService("RunService").Heartbeat:Connect(function()
-        for Button, Value in pairs(Settings) do
-            local Callback = GetCallback(Button)
-    
-            if Value then
-                Callback()
+    task.spawn(function()
+        game:GetService("RunService").Heartbeat:Connect(function()
+            for Button, Value in pairs(Settings) do
+                local Callback = GetCallback(Button)
+        
+                if Value then
+                    Callback()
+                end
             end
-        end
-    
-        print("Working!")
+        
+            print("Working!")
+        end)
     end)
 end
 
@@ -193,12 +193,26 @@ local InitializeDragify = function()
     Helpers.draggable(Window, 30)
 end
 
+local InitializeButtons = function()
+    local Window = GetWindow()
+
+    if not Window then
+        return
+    end
+
+    Window.Topbar.Close.MouseEnter  = function()
+        game:GetService("TweenService"):Create(Window.Topbar.Close, TweenInfo.new(0.5), {ImageTransparency = 0}):Play()
+    end
+
+    Window.Topbar.Close.MouseLeave  = function()
+        game:GetService("TweenService"):Create(Window.Topbar.Close, TweenInfo.new(0.5), {ImageTransparency = 0.3}):Play()
+    end
+end
+
 local Initialize = function()
-    task.spawn(function()
-        InitializeDragify()
-        InitializeToggles()
-        InitializeTabs()
-    end)
+    InitializeDragify()
+    InitializeToggles()
+    InitializeTabs()
 end
 
 Initialize()
