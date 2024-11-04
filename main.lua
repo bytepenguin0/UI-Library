@@ -16,6 +16,16 @@ local OffPosition = UDim2.new(1, -40, 0.5, 0)
 
 --> Functions
 
+local GetCallback = function(Button)
+    for Object, Callback in pairs(Callbacks) do
+        if string.lower(Object.Name) == tostring(string.lower(Button)) then
+            return Callback
+        end
+    end
+
+    return nil
+end
+
 local GetTab = function(Tab)
     for Button, TabFrame in pairs(Tabs) do
         if TabFrame.Name == Tab then
@@ -40,6 +50,8 @@ module.CreateWindow = function(Title)
     Window.Topbar.Title.Text = Title
     Window.Name = Title
     Window.Parent = ScreenGui
+
+    Window.Topbar.Title.Interactable = false
 end
 
 module.AddTab = function(Title)
@@ -156,6 +168,18 @@ local InitializeToggles = function()
             end
         end)
     end
+
+    game:GetService("RunService").Heartbeat:Connect(function()
+        for Button, Value in pairs(Settings) do
+            local Callback = GetCallback(Button)
+    
+            if Value then
+                Callback()
+            end
+        end
+    
+        print("Working!")
+    end)
 end
 
 local InitializeDragify = function()
@@ -169,28 +193,10 @@ local InitializeDragify = function()
     return Helpers.draggable(Window, 30)
 end
 
-local GetCallback = function(Button)
-    for Object, Callback in pairs(Callbacks) do
-        if string.lower(Object.Name) == tostring(string.lower(Button)) then
-            return Callback
-        end
-    end
-
-    return nil
+local Initialize = function()
+    return task.spawn(function(); InitializeDragify(); InitializeToggles(); InitializeTabs() end)
 end
 
-game:GetService("RunService").Heartbeat:Connect(function()
-    for Button, Value in pairs(Settings) do
-        local Callback = GetCallback(Button)
-
-        if Value then
-            Callback()
-        end
-    end
-end)
-
-InitializeToggles()
-InitializeTabs()
-InitializeDragify()
+Initialize()
 
 return module
