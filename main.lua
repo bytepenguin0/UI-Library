@@ -6,7 +6,7 @@ local Settings = {}
 local Tabs = {}
 local Callbacks = {}
 
-local Library = game:GetObjects("rbxassetid://86461665688191")[1]
+local Library = game:GetObjects("rbxassetid://120885785477427")[1]
 local Examples = Library.Examples
 
 local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
@@ -200,19 +200,24 @@ local InitializeButtons = function()
         return
     end
 
-    Window.Topbar.Close.MouseEnter  = function()
+    Window.Topbar.Close.MouseEnter:Connect(function()
         game:GetService("TweenService"):Create(Window.Topbar.Close, TweenInfo.new(0.5), {ImageTransparency = 0}):Play()
-    end
+    end)
 
-    Window.Topbar.Close.MouseLeave  = function()
+    Window.Topbar.Close.MouseLeave:Connect(function()
         game:GetService("TweenService"):Create(Window.Topbar.Close, TweenInfo.new(0.5), {ImageTransparency = 0.3}):Play()
-    end
+    end)
+
+    Window.Topbar.Close.MouseButton1Click:Connect(function()
+        Window:Destroy()
+    end)
 end
 
 local Initialize = function()
     InitializeDragify()
     InitializeToggles()
     InitializeTabs()
+    InitializeButtons()
 end
 
 Initialize()
