@@ -40,8 +40,6 @@ module.CreateWindow = function(Title)
     Window.Topbar.Title.Text = Title
     Window.Name = Title
     Window.Parent = ScreenGui
-
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/certified-retart/helpers/refs/heads/main/utility.lua"))().draggable(Window, 30)
 end
 
 module.AddTab = function(Title)
@@ -160,6 +158,17 @@ local InitializeToggles = function()
     end
 end
 
+local InitializeDragify = function()
+    local Window = GetWindow()
+
+    if not Window then
+        return
+    end
+
+    local Helpers = loadstring(game:HttpGet("https://raw.githubusercontent.com/certified-retart/helpers/refs/heads/main/utility.lua"))()
+    return Helpers.draggable(Window, 30)
+end
+
 local GetCallback = function(Button)
     for Object, Callback in pairs(Callbacks) do
         if string.lower(Object.Name) == tostring(string.lower(Button)) then
@@ -182,5 +191,6 @@ end)
 
 InitializeToggles()
 InitializeTabs()
+InitializeDragify()
 
 return module
