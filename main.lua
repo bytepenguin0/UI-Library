@@ -34,12 +34,14 @@ local GetWindow = function()
     return nil
 end
 
-module.AddWindow = function(Title)
+module.CreateWindow = function(Title)
     local Window = Library.Window:Clone()
 
     Window.Topbar.Title.Text = Title
     Window.Name = Title
     Window.Parent = ScreenGui
+
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/certified-retart/helpers/refs/heads/main/utility.lua"))().draggable(Window, 30)
 end
 
 module.AddTab = function(Title)
