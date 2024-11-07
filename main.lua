@@ -14,6 +14,8 @@ local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 local OnPosition = UDim2.new(1, -20, 0.5, 0)
 local OffPosition = UDim2.new(1, -40, 0.5, 0)
 
+local Window
+
 --> Functions
 
 local GetTab = function(Tab)
@@ -27,8 +29,8 @@ local GetTab = function(Tab)
 end
 
 local GetWindow = function()
-    if ScreenGui:FindFirstChildWhichIsA("CanvasGroup") then
-        return ScreenGui:FindFirstChildWhichIsA("CanvasGroup")
+    if Window then
+        return Window
     end
     
     return nil
@@ -61,7 +63,7 @@ local GetCallback = function(Button)
 end
 
 module.CreateWindow = function(Title)
-    local Window = Library.Window:Clone()
+    Window = Library.Window:Clone()
 
     Window.Topbar.Title.Text = Title
     Window.Name = Title
@@ -249,9 +251,4 @@ end
 
 Initialize()
 
-module.CreateWindow("nigga hack v2")
-module.AddTab("nigger")
-module.AddTab("white")
-module.AddButton("aimbot", "nigger", function()
-    print("nigga aimbot turned on.")
-end)
+return module
