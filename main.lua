@@ -4,7 +4,6 @@ local module = {}
 
 local Settings = {}
 local Tabs = {}
-local Callbacks = {}
 
 local Library = game:GetObjects("rbxassetid://120885785477427")[1]
 local Examples = Library.Examples
@@ -14,23 +13,30 @@ local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 local OnPosition = UDim2.new(1, -20, 0.5, 0)
 local OffPosition = UDim2.new(1, -40, 0.5, 0)
 
-local Window
+local Win
 
 --> Functions
 
-local GetTab = function(Tab)
-    for Button, TabFrame in pairs(Tabs) do
-        if TabFrame.Name == Tab then
-            return TabFrame
-        end
+local GetWindow = function()
+    if Win then
+        return Win
     end
-    
+
     return nil
 end
 
-local GetWindow = function()
-    if Window then
-        return Window
+local GetTab = function(Name)
+    local Window = GetWindow()
+
+    if not Window then
+        warn("No window found!")
+        return
+    end
+
+    for _, Tab in pairs(Window.Tabs:GetChildren()) do
+        if Tab.Name == tostring(Name) then
+            return Tab
+        end
     end
     
     return nil
@@ -38,13 +44,17 @@ end
 
 local GetToggles = function()
     local Toggles = {}
+    local Window = GetWindow()
 
-    for _, Window in pairs(GetWindow():GetChildren()) do
-        for _, Tab in pairs(Window.Tabs:GetChildren()) do
-            for _, Button in pairs(Tab.ScrollingFrame:GetChildren()) do
-                if Button:IsA("Frame") and Button:FindFirstChild("Switch") then
-                    table.insert(Toggles, Button)
-                end
+    if not Window then
+        warn("No window found!")
+        return
+    end
+
+    for _, Tab in pairs(Window.Tabs:GetChildren()) do
+        for _, Button in pairs(Tab.ScrollingFrame:GetChildren()) do
+            if Button:IsA("Frame") and Button:FindFirstChild("Switch") then
+                table.insert(Toggles, Button)
             end
         end
     end
@@ -52,18 +62,9 @@ local GetToggles = function()
     return Toggles
 end
 
-local GetCallback = function(Button)
-    for Object, Callback in pairs(Callbacks) do
-        if string.lower(Object.Name) == tostring(string.lower(Button)) then
-            return Callback
-        end
-    end
-
-    return nil
-end
-
 module.CreateWindow = function(Title)
-    Window = Library.Window:Clone()
+    local Window = Library.Window:Clone()
+    Win = Window
 
     Window.Topbar.Title.Text = Title
     Window.Name = Title
@@ -83,43 +84,63 @@ module.AddTab = function(Title)
     TabButton.Title.Text = Title
     TabButton.Parent = Window.Sidebar.ScrollingFrame
     Tab.Parent = Window.Tabs
+    Tab.Name = Title
 
     Tabs[TabButton] = Tab
 end
 
 module.AddLabel = function(Title, Tab)
     if not GetTab(Tab) then
+        warn("Tab not found.")
+
         return
     end
 
     local Label = Examples.Label:Clone()
 
-    Label.Parent = GetTab(Tab)
+    Label.Parent = GetTab(Tab).ScrollingFrame
     Label.Title.Text = Title
 end
 
 module.AddToggle = function(Title, Tab, Callback)
     if not GetTab(Tab) then
+        warn("Tab not found.")
+
         return
     end
 
     local Toggle = Examples.Toggle:Clone()
 
-    Toggle.Parent = GetTab(Tab)
+    Toggle.Parent = GetTab(Tab).ScrollingFrame
     Toggle.Title.Text = Title
 
     Settings[Toggle.Name] = false
-    table.insert(Callbacks, {Toggle, Callback})
+
+    Toggle.Interact.MouseButton1Click:Connect(function()
+        Settings[Toggle.Name] = not Settings[Toggle.Name]
+
+        if Settings[Toggle.Name] == true then
+            task.spawn(function()
+                Callback()
+            end)
+
+            game:GetService("TweenService"):Create(Toggle.Switch.Indicator, TweenInfo.new(0.2), {Position = OnPosition, BackgroundColor3 = Color3.fromRGB(69, 132, 234)}):Play()
+        else
+            game:GetService("TweenService"):Create(Toggle.Switch.Indicator, TweenInfo.new(0.2), {Position = OffPosition, BackgroundColor3 = Color3.fromRGB(100, 100, 100)}):Play()
+        end
+    end)
 end
 
 module.AddButton = function(Title, Tab, Callback)
     if not GetTab(Tab) then
+        warn("Tab not found.")
+
         return
     end
 
     local Button = Examples.Button:Clone()
 
-    Button.Parent = GetTab(Tab)
+    Button.Parent = GetTab(Tab).ScrollingFrame
     Button.Title.Text = Title
 
     Button.Interact.MouseButton1Click:Connect(function()
@@ -128,47 +149,6 @@ module.AddButton = function(Title, Tab, Callback)
 end
 
 --> Initialization
-
-local InitializeTabs = function()
-    local Window = GetWindow()
-
-    if Window then
-        task.spawn(function()
-            for Button, TabFrame in pairs(Tabs) do
-                Button.MouseButton1Click:Connect(function()
-                    for _, Tab in pairs(Window.Tabs:GetChildren()) do
-                        Tab.Visible = false
-                    end
-        
-                    TabFrame.Visible = true
-                end)
-            end
-        end)
-    end
-end
-
-local InitializeToggles = function()
-    if GetWindow() and GetToggles() ~= {} or not GetToggles() then
-        task.spawn(function()
-            for _, Toggle in pairs(GetToggles()) do
-                Toggle.Interact.MouseButton1Click:Connect(function()
-                    local Callback = GetCallback(Toggle)
-                    Settings[Toggle.Name] = not Settings[Toggle.Name]
-        
-                    if Settings[Toggle.Name] == true then
-                        game:GetService("TweenService"):Create(Toggle, TweenInfo.new(0.5), {Position = OnPosition}):Play()
-                    else
-                        task.spawn(function()
-                            Callback()
-                        end)
-
-                        game:GetService("TweenService"):Create(Toggle, TweenInfo.new(0.5), {Position = OffPosition}):Play()
-                    end
-                end)
-            end
-        end)
-    end
-end
 
 local InitializeDragify = function()
     local Window = GetWindow()
@@ -222,33 +202,69 @@ local InitializeDragify = function()
     end
 end
 
-local InitializeButtons = function()
+local InitializeTabs = function()
     local Window = GetWindow()
 
     if Window then
         task.spawn(function()
-            Window.Topbar.Close.MouseEnter:Connect(function()
-                game:GetService("TweenService"):Create(Window.Topbar.Close, TweenInfo.new(0.5), {ImageTransparency = 0}):Play()
-            end)
-        
-            Window.Topbar.Close.MouseLeave:Connect(function()
-                game:GetService("TweenService"):Create(Window.Topbar.Close, TweenInfo.new(0.5), {ImageTransparency = 0.3}):Play()
-            end)
-        
-            Window.Topbar.Close.MouseButton1Click:Connect(function()
-                Window:Destroy()
-            end)
+            for Button, Tab in pairs(Tabs) do
+                Button.Interact.MouseButton1Click:Connect(function()
+                    for Button2, Tab2 in pairs(Tabs) do
+                        if Tab2 == Tab then
+                            continue
+                        end
+                        
+                        Tab2.Visible = false
+                        game:GetService("TweenService"):Create(Button2, TweenInfo.new(0.35), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
+                    end
+                    
+                    Tab.Visible = true
+                    game:GetService("TweenService"):Create(Button, TweenInfo.new(0.35), {BackgroundColor3 = Color3.fromRGB(48, 48, 48)}):Play()
+                end)
+            end
         end)
     end
 end
 
-local Initialize = function()
+local InitializeButtons = function()
+    local Window = GetWindow()
+    Window.Topbar.Close.ImageTransparency = 0.4
+
+    if Window then
+        task.spawn(function()
+            Window.Topbar.Close.MouseEnter:Connect(function()
+                game:GetService("TweenService"):Create(Window.Topbar.Close, TweenInfo.new(0.2), {ImageTransparency = 0}):Play()
+            end)
+        
+            Window.Topbar.Close.MouseLeave:Connect(function()
+                game:GetService("TweenService"):Create(Window.Topbar.Close, TweenInfo.new(0.2), {ImageTransparency = 0.4}):Play()
+            end)
+        
+            Window.Topbar.Close.MouseButton1Click:Connect(function()
+                ScreenGui:Destroy()
+            end)
+
+            for Button, Tab in pairs(Tabs) do
+                for _, Object in pairs(Tab.ScrollingFrame:GetChildren()) do
+                    if #Object:GetChildren() == 4 and Object.Interact and Object.Title then
+                        Object.Interact.MouseEnter:Connect(function()
+                            game:GetService("TweenService"):Create(Object, TweenInfo.new(0.5), {BackgroundColor3 = Color3.fromRGB(40, 40, 40)}):Play()
+                        end)
+
+                        Object.Interact.MouseLeave:Connect(function()
+                            game:GetService("TweenService"):Create(Object, TweenInfo.new(0.5), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
+                        end)
+                    end
+                end
+            end
+        end)
+    end
+end
+
+module.Initialize = function()
     InitializeDragify()
-    InitializeToggles()
     InitializeTabs()
     InitializeButtons()
 end
-
-Initialize()
 
 return module
