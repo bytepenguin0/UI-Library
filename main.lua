@@ -16,16 +16,6 @@ local OffPosition = UDim2.new(1, -40, 0.5, 0)
 
 --> Functions
 
-local GetCallback = function(Button)
-    for Object, Callback in pairs(Callbacks) do
-        if string.lower(Object.Name) == tostring(string.lower(Button)) then
-            return Callback
-        end
-    end
-
-    return nil
-end
-
 local GetTab = function(Tab)
     for Button, TabFrame in pairs(Tabs) do
         if TabFrame.Name == Tab then
@@ -41,6 +31,32 @@ local GetWindow = function()
         return ScreenGui:FindFirstChildWhichIsA("CanvasGroup")
     end
     
+    return nil
+end
+
+local GetToggles = function()
+    local Toggles = {}
+
+    for _, Window in pairs(GetWindow():GetChildren()) do
+        for _, Tab in pairs(Window.Tabs:GetChildren()) do
+            for _, Button in pairs(Tab.ScrollingFrame:GetChildren()) do
+                if Button:IsA("Frame") and Button:FindFirstChild("Switch") then
+                    table.insert(Toggles, Button)
+                end
+            end
+        end
+    end
+
+    return Toggles
+end
+
+local GetCallback = function(Button)
+    for Object, Callback in pairs(Callbacks) do
+        if string.lower(Object.Name) == tostring(string.lower(Button)) then
+            return Callback
+        end
+    end
+
     return nil
 end
 
@@ -114,142 +130,114 @@ end
 local InitializeTabs = function()
     local Window = GetWindow()
 
-    if not Window then
-        return
-    end
-
-    for Button, TabFrame in pairs(Tabs) do
-        Button.MouseButton1Click:Connect(function()
-            for _, Tab in pairs(Window.Tabs:GetChildren()) do
-                Tab.Visible = false
+    if Window then
+        task.spawn(function()
+            for Button, TabFrame in pairs(Tabs) do
+                Button.MouseButton1Click:Connect(function()
+                    for _, Tab in pairs(Window.Tabs:GetChildren()) do
+                        Tab.Visible = false
+                    end
+        
+                    TabFrame.Visible = true
+                end)
             end
-
-            TabFrame.Visible = true
         end)
     end
-end
-
-local GetToggles = function()
-    local Toggles = {}
-
-    for _, Window in pairs(GetWindow():GetChildren()) do
-        for _, Tab in pairs(Window.Tabs:GetChildren()) do
-            for _, Button in pairs(Tab.ScrollingFrame:GetChildren()) do
-                if Button:IsA("Frame") and Button:FindFirstChild("Switch") then
-                    table.insert(Toggles, Button)
-                end
-            end
-        end
-    end
-
-    return Toggles
 end
 
 local InitializeToggles = function()
-    if not GetWindow() then
-        return
-    end
-
-    if GetToggles() == {} or nil then
-        return
-    end
-
-    for _, Toggle in pairs(GetToggles()) do
-        Toggle.Interact.MouseButton1Click:Connect(function()
-
-            Settings[Toggle.Name] = not Settings[Toggle.Name]
-
-            if Settings[Toggle.Name] == true then
-                game:GetService("TweenService"):Create(Toggle, TweenInfo.new(0.5), {Position = OnPosition}):Play()
-            else
-                game:GetService("TweenService"):Create(Toggle, TweenInfo.new(0.5), {Position = OffPosition}):Play()
-            end
-        end)
-    end
-
-    task.spawn(function()
-        game:GetService("RunService").Heartbeat:Connect(function()
-            for Button, Value in pairs(Settings) do
-                local Callback = GetCallback(Button)
+    if GetWindow() and GetToggles() ~= {} or not GetToggles() then
+        task.spawn(function()
+            for _, Toggle in pairs(GetToggles()) do
+                Toggle.Interact.MouseButton1Click:Connect(function()
+                    local Callback = GetCallback(Toggle)
+                    Settings[Toggle.Name] = not Settings[Toggle.Name]
         
-                if Value then
-                    Callback()
-                end
+                    if Settings[Toggle.Name] == true then
+                        game:GetService("TweenService"):Create(Toggle, TweenInfo.new(0.5), {Position = OnPosition}):Play()
+                    else
+                        task.spawn(function()
+                            Callback()
+                        end)
+
+                        game:GetService("TweenService"):Create(Toggle, TweenInfo.new(0.5), {Position = OffPosition}):Play()
+                    end
+                end)
             end
         end)
-    end)
+    end
 end
 
 local InitializeDragify = function()
     local Window = GetWindow()
 
-    if not Window then
-        return
-    end
-
-    local dragToggle
-    local dragInput
-    local dragSpeed
-    local dragStart
-    local dragPos
-    local startPos
-    
-    function dragify(Frame)
-        dragToggle = nil
-        dragSpeed = 0.50
-        dragInput = nil
-        dragStart = nil
-        dragPos = nil
-        local function updateInput(input)
-            local Delta = input.Position - dragStart
-            local Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + Delta.X, startPos.Y.Scale, startPos.Y.Offset + Delta.Y)
-            game:GetService("TweenService"):Create(Frame, TweenInfo.new(0.30), {Position = Position}):Play()
-        end
-        Frame.InputBegan:Connect(function(input)
-            if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and game:GetService("UserInputService"):GetFocusedTextBox() == nil then
-                dragToggle = true
-                dragStart = input.Position
-                startPos = Frame.Position
-                input.Changed:Connect(function()
-                    if input.UserInputState == Enum.UserInputState.End then
-                        dragToggle = false
+    if Window then
+        task.spawn(function()
+            local dragToggle
+            local dragInput
+            local dragSpeed
+            local dragStart
+            local dragPos
+            local startPos
+            
+            function dragify(Frame)
+                dragToggle = nil
+                dragSpeed = 0.50
+                dragInput = nil
+                dragStart = nil
+                dragPos = nil
+                local function updateInput(input)
+                    local Delta = input.Position - dragStart
+                    local Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + Delta.X, startPos.Y.Scale, startPos.Y.Offset + Delta.Y)
+                    game:GetService("TweenService"):Create(Frame, TweenInfo.new(0.30), {Position = Position}):Play()
+                end
+                Frame.InputBegan:Connect(function(input)
+                    if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and game:GetService("UserInputService"):GetFocusedTextBox() == nil then
+                        dragToggle = true
+                        dragStart = input.Position
+                        startPos = Frame.Position
+                        input.Changed:Connect(function()
+                            if input.UserInputState == Enum.UserInputState.End then
+                                dragToggle = false
+                            end
+                        end)
+                    end
+                end)
+                Frame.InputChanged:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                        dragInput = input
+                    end
+                end)
+                game:GetService("UserInputService").InputChanged:Connect(function(input)
+                    if input == dragInput and dragToggle then
+                        updateInput(input)
                     end
                 end)
             end
-        end)
-        Frame.InputChanged:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-                dragInput = input
-            end
-        end)
-        game:GetService("UserInputService").InputChanged:Connect(function(input)
-            if input == dragInput and dragToggle then
-                updateInput(input)
-            end
+            
+            dragify(Window)
         end)
     end
-    
-    dragify(Window)
 end
 
 local InitializeButtons = function()
     local Window = GetWindow()
 
-    if not Window then
-        return
+    if Window then
+        task.spawn(function()
+            Window.Topbar.Close.MouseEnter:Connect(function()
+                game:GetService("TweenService"):Create(Window.Topbar.Close, TweenInfo.new(0.5), {ImageTransparency = 0}):Play()
+            end)
+        
+            Window.Topbar.Close.MouseLeave:Connect(function()
+                game:GetService("TweenService"):Create(Window.Topbar.Close, TweenInfo.new(0.5), {ImageTransparency = 0.3}):Play()
+            end)
+        
+            Window.Topbar.Close.MouseButton1Click:Connect(function()
+                Window:Destroy()
+            end)
+        end)
     end
-
-    Window.Topbar.Close.MouseEnter:Connect(function()
-        game:GetService("TweenService"):Create(Window.Topbar.Close, TweenInfo.new(0.5), {ImageTransparency = 0}):Play()
-    end)
-
-    Window.Topbar.Close.MouseLeave:Connect(function()
-        game:GetService("TweenService"):Create(Window.Topbar.Close, TweenInfo.new(0.5), {ImageTransparency = 0.3}):Play()
-    end)
-
-    Window.Topbar.Close.MouseButton1Click:Connect(function()
-        Window:Destroy()
-    end)
 end
 
 local Initialize = function()
@@ -261,4 +249,9 @@ end
 
 Initialize()
 
-return module
+module.CreateWindow("nigga hack v2")
+module.AddTab("nigger")
+module.AddTab("white")
+module.AddButton("aimbot", "nigger", function()
+    print("nigga aimbot turned on.")
+end)
