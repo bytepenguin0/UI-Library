@@ -1,19 +1,21 @@
 local module = {}
+module.window = {
+    ["tab"] = {
+        ["label"] = {},
+        ["toggle"] = {},
+        ["button"] = {}
+    }
+}
 
-module.window = {}
-module.window.__index = module.window
+local setIndex; setIndex = function(t)
+    for name, value in pairs(t) do
+        if type(value) == "table" then
+            value.__index = value
 
-module.window.tab = {}
-module.window.tab.__index = module.window.tab
-
-module.window.tab.label = {}
-module.window.tab.label.__index = module.window.tab.label
-
-module.window.tab.toggle = {}
-module.window.tab.toggle.__index = module.window.tab.toggle
-
-module.window.tab.button = {}
-module.window.tab.button.__index = module.window.tab.button
+            setIndex(value)
+        end
+    end
+end
 
 local setIndex; setIndex = function(t)
     for name, value in pairs(t) do
@@ -27,34 +29,34 @@ end
 
 --> Variables
 
-local Settings = {}
-local Tabs = {}
+local settings = {}
+local tabs = {}
 
-local Library = game:GetObjects("rbxassetid://103258039851971")[1]
-local Examples = Library.Examples
+local library = game:GetObjects("rbxassetid://103258039851971")[1]
+local examples = library.Examples
 
-local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+local screenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 
-local OnPosition = UDim2.new(1, -20, 0.5, 0)
-local OffPosition = UDim2.new(1, -40, 0.5, 0)
+local inPosition = UDim2.new(1, -20, 0.5, 0)
+local offPosition = UDim2.new(1, -40, 0.5, 0)
 
-local Win
+local win
 
 --> Functions
 
 function module.window:createTab(title)
     local tab = setmetatable({}, self.tab)
 
-    local UI = Examples.Tab:Clone()
-    local TabButton = Examples.TabButton:Clone()
+    local UI = examples.Tab:Clone()
+    local tabButton = examples.TabButton:Clone()
 
-    TabButton.Title.Text = title
-    TabButton.Parent = self.ui.Sidebar.ScrollingFrame
+    tabButton.Title.Text = title
+    tabButton.Parent = self.ui.Sidebar.ScrollingFrame
 
     UI.Parent = self.ui.Tabs
     UI.Name = title
 
-    Tabs[TabButton] = UI
+    tabs[tabButton] = UI
 
     tab.title = title
     tab.ui = UI
@@ -64,11 +66,11 @@ end
 
 function module:createWindow(title)
     local window = setmetatable({}, self.window)
-    local ui = Library.Window:Clone()
+    local ui = library.Window:Clone()
     
     ui.Topbar.Title.Text = title
     ui.Name = title
-    ui.Parent = ScreenGui
+    ui.Parent = screenGui
 
     window.ui = ui
     window.title = title
