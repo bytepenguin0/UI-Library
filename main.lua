@@ -5,7 +5,7 @@ local module = {}
 local Settings = {}
 local Tabs = {}
 
-local Library = game:GetObjects("rbxassetid://120885785477427")[1]
+local Library = game:GetObjects("rbxassetid://103258039851971")[1]
 local Examples = Library.Examples
 
 local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
@@ -39,6 +39,27 @@ local GetTab = function(Name)
         end
     end
     
+    return nil
+end
+
+local GetCurrentTab = function()
+    local Window = GetWindow()
+
+    if not Window then
+        warn("No window found!")
+        return
+    end
+
+    for _, Tab in pairs(Window.Tabs:GetChildren()) do
+        if Tab.Visible then
+            for Button, Tab2 in pairs(Tabs) do
+                if Tab == Tab2 then
+                    return {Button, Tab2}
+                end
+            end
+        end
+    end
+
     return nil
 end
 
@@ -148,6 +169,26 @@ module.AddButton = function(Title, Tab, Callback)
     end)
 end
 
+module.SetTab = function(Tab)
+    if not GetWindow() then
+        warn("No window found.")
+        
+        return
+    end
+
+    if not GetTab(Tab) then
+        warn("Tab not found.")
+
+        return
+    end
+
+    for _, Object in pairs(GetWindow().Tabs:GetChildren()) do
+        Object.Visible = false
+    end
+
+    GetTab(Tab).Visible = true
+end
+
 --> Initialization
 
 local InitializeDragify = function()
@@ -209,28 +250,37 @@ local InitializeTabs = function()
         task.spawn(function()
             for Button, Tab in pairs(Tabs) do
                 Button.Interact.MouseButton1Click:Connect(function()
-                    for Button2, Tab2 in pairs(Tabs) do
+                    for _, Tab2 in pairs(Tabs) do
                         if Tab2 == Tab then
                             continue
                         end
                         
                         Tab2.Visible = false
-                        game:GetService("TweenService"):Create(Button2, TweenInfo.new(0.35), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
                     end
                     
                     Tab.Visible = true
-                    game:GetService("TweenService"):Create(Button, TweenInfo.new(0.35), {BackgroundColor3 = Color3.fromRGB(48, 48, 48)}):Play()
                 end)
             end
+
+            game:GetService("RunService").Heartbeat:Connect(function()
+                for Button, Tab in pairs(Tabs) do
+                    if Tab.Visible then
+                        game:GetService("TweenService"):Create(Button, TweenInfo.new(0.35), {BackgroundColor3 = Color3.fromRGB(48, 48, 48)}):Play()
+                    else
+                        game:GetService("TweenService"):Create(Button, TweenInfo.new(0.35), {BackgroundColor3 = Color3.fromRGB(32, 32, 32)}):Play()
+                   end
+                end
+            end)
         end)
     end
 end
 
 local InitializeButtons = function()
     local Window = GetWindow()
-    Window.Topbar.Close.ImageTransparency = 0.4
 
     if Window then
+        Window.Topbar.Close.ImageTransparency = 0.4
+
         task.spawn(function()
             Window.Topbar.Close.MouseEnter:Connect(function()
                 game:GetService("TweenService"):Create(Window.Topbar.Close, TweenInfo.new(0.2), {ImageTransparency = 0}):Play()
@@ -267,4 +317,30 @@ module.Initialize = function()
     InitializeButtons()
 end
 
-return module
+module.CreateWindow("UI Library Testing")
+
+module.AddTab("Tab 1")
+module.AddTab("Tab 2")
+
+module.AddButton("Testing Button 1", "Tab 1", function()
+    print("testing button 1")
+end)
+
+module.AddButton("Testing Button 2", "Tab 2", function()
+    print("testing button 2")
+end)
+
+module.AddToggle("Testing Toggle 1", "Tab 1", function()
+    print("testing toggle 1")
+end)
+
+module.AddToggle("Testing Toggle 2", "Tab 2", function()
+    print("testing toggle 2")
+end)
+
+module.AddLabel("Testing Label 1", "Tab 1")
+module.AddLabel("Testing Label 2", "Tab 2")
+
+module.SetTab("Tab 1")
+
+module.Initialize()
