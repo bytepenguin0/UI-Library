@@ -1,4 +1,5 @@
 local module = {}
+
 module.window = {
     ["tab"] = {
         ["label"] = {},
@@ -6,16 +7,6 @@ module.window = {
         ["button"] = {}
     }
 }
-
-local setIndex; setIndex = function(t)
-    for name, value in pairs(t) do
-        if type(value) == "table" then
-            value.__index = value
-
-            setIndex(value)
-        end
-    end
-end
 
 local setIndex; setIndex = function(t)
     for name, value in pairs(t) do
