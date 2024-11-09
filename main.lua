@@ -25,10 +25,13 @@ setIndex(module)
 local settings = {}
 local tabs = {}
 
-local library = game:GetObjects("rbxassetid://103258039851971")[1]
+local library = game:GetObjects("rbxassetid://96964206819957")[1]
 local examples = library.Examples
 
 local screenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+local notifs = library.Notifications:Clone()
+notifs.Parent = screenGui
+notifs.UIListLayout.Padding = UDim.new(0, 20)
 
 local inPosition = UDim2.new(1, -20, 0.5, 0)
 local offPosition = UDim2.new(1, -40, 0.5, 0)
@@ -60,6 +63,44 @@ module.window.tab.toggle.__index = function(self, key)
 end
 
 --> Functions
+
+local tween = function(object, tweenInfo, table)
+    game:GetService("TweenService"):Create(object, tweenInfo, table):Play()
+end
+
+function module:notify(title, text)
+    if not screenGui.Notifications then
+        return
+    end
+
+    local notification = examples.Notification:Clone()
+
+    notification.Parent = screenGui.Notifications
+    notification.Title.Text = title
+    notification.Content.Text = text
+
+    task.spawn(function()
+        tween(notification, TweenInfo.new(0.3), {BackgroundTransparency = 0.2})
+        task.wait(0.25)
+        tween(notification.Title, TweenInfo.new(0.3), {TextTransparency = 0})
+        tween(notification.Content, TweenInfo.new(0.3), {TextTransparency = 0})
+        tween(notification.UIStroke, TweenInfo.new(0.3), {Transparency = 0})
+        tween(notification.ImageLabel, TweenInfo.new(0.3), {ImageTransparency = 0})
+    
+        task.delay(8, function()
+            tween(notification.Title, TweenInfo.new(0.3), {TextTransparency = 1})
+            tween(notification.Content, TweenInfo.new(0.3), {TextTransparency = 1})
+            tween(notification.UIStroke, TweenInfo.new(0.3), {Transparency = 1})
+            tween(notification.ImageLabel, TweenInfo.new(0.3), {ImageTransparency = 1})
+            task.wait(0.25)
+            tween(notification, TweenInfo.new(0.3), {BackgroundTransparency = 1})
+
+            task.wait(0.3)
+
+            notification:Destroy()
+        end)
+    end)
+end
 
 function module.window.tab:addLabel(title)
     local label = setmetatable({}, self.label)
@@ -196,7 +237,7 @@ function module:createWindow(title)
         end)
     
         ui.Topbar.Close.MouseButton1Click:Connect(function()
-            ui:Destroy()
+            screenGui:Destroy()
         end)
     end)
 
@@ -276,3 +317,17 @@ end)
 
 tab1:addLabel("Testing Label 1", "Tab 1")
 tab2:addLabel("Testing Label 2", "Tab 2")
+
+task.wait(2)
+
+module:notify("nigga hack", "Hack Loaded. Now You Can Freely Hack In Nigga Hack.")
+task.wait(0.6)
+module:notify("nigga hack", "Hack Loaded. Now You Can Freely Hack In Nigga Hack.")
+task.wait(0.6)
+module:notify("nigga hack", "Hack Loaded. Now You Can Freely Hack In Nigga Hack.")
+task.wait(0.6)
+module:notify("nigga hack", "Hack Loaded. Now You Can Freely Hack In Nigga Hack.")
+task.wait(0.6)
+module:notify("nigga hack", "Hack Loaded. Now You Can Freely Hack In Nigga Hack.")
+task.wait(0.6)
+module:notify("nigga hack", "niggers")
