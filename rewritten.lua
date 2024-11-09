@@ -15,6 +15,16 @@ module.window.tab.toggle.__index = module.window.tab.toggle
 module.window.tab.button = {}
 module.window.tab.button.__index = module.window.tab.button
 
+local setIndex; setIndex = function(t)
+    for name, value in pairs(t) do
+        if type(value) == "table" then
+            value.__index = value
+
+            setIndex(value)
+        end
+    end
+end
+
 --> Variables
 
 local Settings = {}
