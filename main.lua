@@ -1,5 +1,25 @@
 local module = {}
 
+module.window = {
+    ["tab"] = {
+        ["label"] = {},
+        ["toggle"] = {},
+        ["button"] = {}
+    }
+}
+
+local setIndex; setIndex = function(t)
+    for name, value in pairs(t) do
+        if type(value) == "table" and not string.match(name, "__") and name ~= "toggle" then
+            value.__index = value
+
+            setIndex(value)
+        end
+    end
+end
+
+setIndex(module)
+
 --> Variables
 
 local settings = {}
@@ -10,332 +30,249 @@ local examples = library.Examples
 
 local screenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 
-local onPosition = UDim2.new(1, -20, 0.5, 0)
+local inPosition = UDim2.new(1, -20, 0.5, 0)
 local offPosition = UDim2.new(1, -40, 0.5, 0)
 
-local win
+module.window.tab.toggle.__newindex = function(self, key, value)
+    if key ~= "state" then
+        rawset(self, key, value)
+
+        return
+    end
+
+    if value == true then
+        task.spawn(self.callback)
+
+        game:GetService("TweenService"):Create(self.ui.Switch.Indicator, TweenInfo.new(0.2), {Position = inPosition, BackgroundColor3 = Color3.fromRGB(69, 132, 234)}):Play()
+    else
+        game:GetService("TweenService"):Create(self.ui.Switch.Indicator, TweenInfo.new(0.2), {Position = offPosition, BackgroundColor3 = Color3.fromRGB(100, 100, 100)}):Play()
+    end
+
+    rawset(self, "__value", value)
+end
+
+module.window.tab.toggle.__index = function(self, key)
+    if key ~= "state" then
+        return rawget(module.window.tab.toggle, key)
+    end
+
+    return self.__value
+end
 
 --> Functions
 
-local getWindow = function()
-    if win then
-        return win
-    end
+function module.window.tab:addLabel(title)
+    local label = setmetatable({}, self.label)
+    local ui = examples.Label:Clone()
 
-    return nil
+    ui.Parent = self.ui.ScrollingFrame
+    ui.Title.Text = title
+
+    label.ui = ui
+    label.title = title
+
+    return label
 end
 
-local getTab = function(name)
-    local window = getWindow()
+function module.window.tab:addToggle(title, callback)
+    local toggle = setmetatable({}, self.toggle)
+    local ui = examples.Toggle:Clone()
 
-    if not window then
-        warn("No window found!")
-        return
-    end
+    ui.Parent = self.ui.ScrollingFrame
+    ui.Title.Text = title
 
-    for _, tab in pairs(window.Tabs:GetChildren()) do
-        if tab.Name == tostring(name) then
-            return tab
-        end
-    end
-    
-    return nil
+    ui.Interact.MouseButton1Click:Connect(function()
+        toggle.state = not toggle.state
+    end)
+
+    toggle.callback = callback
+    toggle.ui = ui
+    toggle.state = false
+
+    return toggle
 end
 
-local getCurrentTab = function()
-    local window = getWindow()
+function module.window.tab:addButton(title, callback)
+    local button = setmetatable({}, self.button)
+    local ui = examples.Button:Clone()
 
-    if not window then
-        warn("No window found!")
-        return
-    end
+    ui.Parent = self.ui.ScrollingFrame
+    ui.Title.Text = title
 
-    for _, tab in pairs(window.Tabs:GetChildren()) do
-        if tab.Visible then
-            for button, tab2 in pairs(tabs) do
-                if tab == tab2 then
-                    return {button, tab2}
-                end
+    ui.Interact.MouseButton1Click:Connect(callback)
+    ui.Interact.MouseEnter:Connect(function()
+        game:GetService("TweenService"):Create(ui, TweenInfo.new(0.5), {BackgroundColor3 = Color3.fromRGB(40, 40, 40)}):Play()
+    end)
+
+    ui.Interact.MouseLeave:Connect(function()
+        game:GetService("TweenService"):Create(ui, TweenInfo.new(0.5), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
+    end)
+
+    button.ui = ui
+    button.callback = callback
+    button.title = title
+
+    return button
+end
+
+function module.window:updateTabs()
+    if self.selectedTab and self.selectedTab ~= 0 then
+        for _, tab2 in pairs(tabs) do
+            if tab2 == self.selectedTab then
+                continue
             end
+            
+            tab2.ui.Visible = false
         end
+        
+        self.selectedTab.ui.Visible = true
     end
 
-    return nil
-end
-
-local getToggles = function()
-    local toggles = {}
-    local window = getWindow()
-
-    if not window then
-        warn("No window found!")
-        return
-    end
-
-    for _, tab in pairs(window.Tabs:GetChildren()) do
-        for _, button in pairs(tab.ScrollingFrame:GetChildren()) do
-            if button:IsA("Frame") and button:FindFirstChild("Switch") then
-                table.insert(toggles, button)
-            end
+    for button, tab in pairs(tabs) do
+        if tab.window ~= self then
+            continue
         end
-    end
 
-    return toggles
+        if tab.ui.Visible then
+            game:GetService("TweenService"):Create(button, TweenInfo.new(0.35), {BackgroundColor3 = Color3.fromRGB(48, 48, 48)}):Play()
+        else
+            game:GetService("TweenService"):Create(button, TweenInfo.new(0.35), {BackgroundColor3 = Color3.fromRGB(32, 32, 32)}):Play()
+       end
+    end
 end
 
-module.createWindow = function(title)
-    local window = library.Window:Clone()
-    win = window
-
-    window.Topbar.Title.Text = title
-    window.Name = title
-    window.Parent = screenGui
+function module.window:setCurrentTab(tab)
+    self.selectedTab = tab
+    self:updateTabs()
 end
 
-module.addTab = function(title)
-    local window = getWindow()
+function module.window:addTab(title)
+    local tab = setmetatable({}, self.tab)
 
-    if not window then
-        return
-    end
-
-    local tab = examples.Tab:Clone()
+    local UI = examples.Tab:Clone()
     local tabButton = examples.TabButton:Clone()
 
     tabButton.Title.Text = title
-    tabButton.Parent = window.Sidebar.ScrollingFrame
-    tab.Parent = window.Tabs
-    tab.Name = title
+    tabButton.Parent = self.ui.Sidebar.ScrollingFrame
+
+    UI.Parent = self.ui.Tabs
+    UI.Name = title
 
     tabs[tabButton] = tab
-end
-
-module.addLabel = function(title, tab)
-    if not getTab(tab) then
-        warn("Tab not found.")
-        return
-    end
-
-    local label = examples.Label:Clone()
-
-    label.Parent = getTab(tab).ScrollingFrame
-    label.Title.Text = title
-end
-
-module.addToggle = function(title, tab, callback)
-    if not getTab(tab) then
-        warn("Tab not found.")
-        return
-    end
-
-    local toggle = examples.Toggle:Clone()
-
-    toggle.Parent = getTab(tab).ScrollingFrame
-    toggle.Title.Text = title
-
-    settings[toggle.Name] = false
-
-    toggle.Interact.MouseButton1Click:Connect(function()
-        settings[toggle.Name] = not settings[toggle.Name]
-
-        if settings[toggle.Name] == true then
-            task.spawn(function()
-                callback()
-            end)
-
-            game:GetService("TweenService"):Create(toggle.Switch.Indicator, TweenInfo.new(0.2), {Position = onPosition, BackgroundColor3 = Color3.fromRGB(69, 132, 234)}):Play()
-        else
-            game:GetService("TweenService"):Create(toggle.Switch.Indicator, TweenInfo.new(0.2), {Position = offPosition, BackgroundColor3 = Color3.fromRGB(100, 100, 100)}):Play()
-        end
+    tabButton.Interact.MouseButton1Click:Connect(function()
+        self:setCurrentTab(tab)
     end)
+
+    if self.selectedTab == 0 then
+        self.selectedTab = tab
+    end
+
+    tab.title = title
+    tab.ui = UI
+    tab.window = self
+
+    self:updateTabs()
+
+    return tab
 end
 
-module.addButton = function(title, tab, callback)
-    if not getTab(tab) then
-        warn("Tab not found.")
-        return
-    end
+function module:createWindow(title)
+    local window = setmetatable({}, self.window)
+    local ui = library.Window:Clone()
+    
+    ui.Topbar.Title.Text = title
+    ui.Name = title
+    ui.Parent = screenGui
 
-    local button = examples.Button:Clone()
+    ui.Topbar.Close.ImageTransparency = 0.4
 
-    button.Parent = getTab(tab).ScrollingFrame
-    button.Title.Text = title
-
-    button.Interact.MouseButton1Click:Connect(function()
-        callback()
-    end)
-end
-
-module.setTab = function(tab)
-    if not getWindow() then
-        warn("No window found.")
-        return
-    end
-
-    if not getTab(tab) then
-        warn("Tab not found.")
-        return
-    end
-
-    for _, object in pairs(getWindow().Tabs:GetChildren()) do
-        object.Visible = false
-    end
-
-    getTab(tab).Visible = true
-end
-
---> Initialization
-
-local initializeDragify = function()
-    local window = getWindow()
-
-    if window then
-        task.spawn(function()
-            local dragToggle
-            local dragInput
-            local dragSpeed
-            local dragStart
-            local dragPos
-            local startPos
-            
-            function dragify(frame)
-                dragToggle = nil
-                dragSpeed = 0.50
-                dragInput = nil
-                dragStart = nil
-                dragPos = nil
-                local function updateInput(input)
-                    local delta = input.Position - dragStart
-                    local position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-                    game:GetService("TweenService"):Create(frame, TweenInfo.new(0.30), {Position = position}):Play()
-                end
-                frame.InputBegan:Connect(function(input)
-                    if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and game:GetService("UserInputService"):GetFocusedTextBox() == nil then
-                        dragToggle = true
-                        dragStart = input.Position
-                        startPos = frame.Position
-                        input.Changed:Connect(function()
-                            if input.UserInputState == Enum.UserInputState.End then
-                                dragToggle = false
-                            end
-                        end)
-                    end
-                end)
-                frame.InputChanged:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-                        dragInput = input
-                    end
-                end)
-                game:GetService("UserInputService").InputChanged:Connect(function(input)
-                    if input == dragInput and dragToggle then
-                        updateInput(input)
-                    end
-                end)
-            end
-            
-            dragify(window)
+    task.spawn(function()
+        ui.Topbar.Close.MouseEnter:Connect(function()
+            game:GetService("TweenService"):Create(ui.Topbar.Close, TweenInfo.new(0.2), {ImageTransparency = 0}):Play()
         end)
-    end
-end
+    
+        ui.Topbar.Close.MouseLeave:Connect(function()
+            game:GetService("TweenService"):Create(ui.Topbar.Close, TweenInfo.new(0.2), {ImageTransparency = 0.4}):Play()
+        end)
+    
+        ui.Topbar.Close.MouseButton1Click:Connect(function()
+            ui:Destroy()
+        end)
+    end)
 
-local initializeTabs = function()
-    local window = getWindow()
-
-    if window then
-        task.spawn(function()
-            for button, tab in pairs(tabs) do
-                button.Interact.MouseButton1Click:Connect(function()
-                    for _, tab2 in pairs(tabs) do
-                        if tab2 == tab then
-                            continue
+    task.spawn(function()
+        local dragToggle
+        local dragInput
+        local dragSpeed
+        local dragStart
+        local dragPos
+        local startPos
+        
+        function dragify(frame)
+            dragToggle = nil
+            dragSpeed = 0.50
+            dragInput = nil
+            dragStart = nil
+            dragPos = nil
+            local function updateInput(input)
+                local delta = input.Position - dragStart
+                local position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+                game:GetService("TweenService"):Create(frame, TweenInfo.new(0.30), {Position = position}):Play()
+            end
+            frame.InputBegan:Connect(function(input)
+                if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and game:GetService("UserInputService"):GetFocusedTextBox() == nil then
+                    dragToggle = true
+                    dragStart = input.Position
+                    startPos = frame.Position
+                    input.Changed:Connect(function()
+                        if input.UserInputState == Enum.UserInputState.End then
+                            dragToggle = false
                         end
-                        
-                        tab2.Visible = false
-                    end
-                    
-                    tab.Visible = true
-                end)
-            end
-
-            game:GetService("RunService").Heartbeat:Connect(function()
-                for button, tab in pairs(tabs) do
-                    if tab.Visible then
-                        game:GetService("TweenService"):Create(button, TweenInfo.new(0.35), {BackgroundColor3 = Color3.fromRGB(48, 48, 48)}):Play()
-                    else
-                        game:GetService("TweenService"):Create(button, TweenInfo.new(0.35), {BackgroundColor3 = Color3.fromRGB(32, 32, 32)}):Play()
-                   end
+                    end)
                 end
             end)
-        end)
-    end
-end
-
-local initializeButtons = function()
-    local window = getWindow()
-
-    if window then
-        window.Topbar.Close.ImageTransparency = 0.4
-
-        task.spawn(function()
-            window.Topbar.Close.MouseEnter:Connect(function()
-                game:GetService("TweenService"):Create(window.Topbar.Close, TweenInfo.new(0.2), {ImageTransparency = 0}):Play()
-            end)
-        
-            window.Topbar.Close.MouseLeave:Connect(function()
-                game:GetService("TweenService"):Create(window.Topbar.Close, TweenInfo.new(0.2), {ImageTransparency = 0.4}):Play()
-            end)
-        
-            window.Topbar.Close.MouseButton1Click:Connect(function()
-                screenGui:Destroy()
-            end)
-
-            for button, tab in pairs(tabs) do
-                for _, object in pairs(tab.ScrollingFrame:GetChildren()) do
-                    if #object:GetChildren() == 4 and object.Interact and object.Title then
-                        object.Interact.MouseEnter:Connect(function()
-                            game:GetService("TweenService"):Create(object, TweenInfo.new(0.5), {BackgroundColor3 = Color3.fromRGB(40, 40, 40)}):Play()
-                        end)
-
-                        object.Interact.MouseLeave:Connect(function()
-                            game:GetService("TweenService"):Create(object, TweenInfo.new(0.5), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
-                        end)
-                    end
+            frame.InputChanged:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                    dragInput = input
                 end
-            end
-        end)
-    end
+            end)
+            game:GetService("UserInputService").InputChanged:Connect(function(input)
+                if input == dragInput and dragToggle then
+                    updateInput(input)
+                end
+            end)
+        end
+    
+        dragify(ui)
+    end)
+
+    window.ui = ui
+    window.title = title
+    window.selectedTab = 0
+
+    return window
 end
 
-module.initialize = function()
-    initializeDragify()
-    initializeTabs()
-    initializeButtons()
-end
+local window = module:createWindow("UI Library Testing")
 
-module.createWindow("UI Library Testing")
+local tab1 = window:addTab("Tab 1")
+local tab2 = window:addTab("Tab 2")
 
-module.addTab("Tab 1")
-module.addTab("Tab 2")
-
-module.addButton("Testing Button 1", "Tab 1", function()
+tab1:addButton("Testing Button 1", function()
     print("testing button 1")
 end)
 
-module.addButton("Testing Button 2", "Tab 2", function()
+tab2:addButton("Testing Button 2", function()
     print("testing button 2")
 end)
 
-module.addToggle("Testing Toggle 1", "Tab 1", function()
+tab1:addToggle("Testing Toggle 1", function()
     print("testing toggle 1")
 end)
 
-module.addToggle("Testing Toggle 2", "Tab 2", function()
+tab2:addToggle("Testing Toggle 2", function()
     print("testing toggle 2")
 end)
 
-module.addLabel("Testing Label 1", "Tab 1")
-module.addLabel("Testing Label 2", "Tab 2")
-
-module.setTab("Tab 1")
-
-module.initialize()
+tab1:addLabel("Testing Label 1", "Tab 1")
+tab2:addLabel("Testing Label 2", "Tab 2")
