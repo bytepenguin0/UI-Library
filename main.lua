@@ -220,6 +220,7 @@ end
 function module:createWindow(title)
     local window = setmetatable({}, self.window)
     local ui = library.Window:Clone()
+    local uicorner = Instance.new("UICorner", ui)
     
     ui.Topbar.Title.Text = title
     ui.Name = title
@@ -294,40 +295,4 @@ function module:createWindow(title)
     return window
 end
 
-local window = module:createWindow("UI Library Testing")
-
-local tab1 = window:addTab("Tab 1")
-local tab2 = window:addTab("Tab 2")
-
-tab1:addButton("Testing Button 1", function()
-    print("testing button 1")
-end)
-
-tab2:addButton("Testing Button 2", function()
-    print("testing button 2")
-end)
-
-tab1:addToggle("Testing Toggle 1", function()
-    print("testing toggle 1")
-end)
-
-tab2:addToggle("Testing Toggle 2", function()
-    print("testing toggle 2")
-end)
-
-tab1:addLabel("Testing Label 1", "Tab 1")
-tab2:addLabel("Testing Label 2", "Tab 2")
-
-task.wait(2)
-
-module:notify("nigga hack", "Hack Loaded. Now You Can Freely Hack In Nigga Hack.")
-task.wait(0.6)
-module:notify("nigga hack", "Hack Loaded. Now You Can Freely Hack In Nigga Hack.")
-task.wait(0.6)
-module:notify("nigga hack", "Hack Loaded. Now You Can Freely Hack In Nigga Hack.")
-task.wait(0.6)
-module:notify("nigga hack", "Hack Loaded. Now You Can Freely Hack In Nigga Hack.")
-task.wait(0.6)
-module:notify("nigga hack", "Hack Loaded. Now You Can Freely Hack In Nigga Hack.")
-task.wait(0.6)
-module:notify("nigga hack", "niggers")
+return module
