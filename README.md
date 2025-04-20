@@ -1,1 +1,4 @@
-The **best** UI library on Roblox
+very simple UI library featuring:
+- tabs
+- buttons
+- toggles
